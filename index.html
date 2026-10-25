@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Stream Prototype</title>
+    <style>
+        :root {
+            --bg-color: #0f0f0f;
+            --card-bg: #1f1f1f;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-color: #e50914;
+            --accent-hover: #f40612;
+            --border-color: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .search-bar {
+            padding: 0.5rem 1rem;
+            width: 300px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .search-bar:focus {
+            border-color: var(--accent-color);
+        }
+
+        .categories {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            overflow-x: auto;
+            background-color: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .category-btn {
+            background-color: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .category-btn:hover, .category-btn.active {
+            background-color: var(--accent-color);
+            color: var(--text-primary);
+            border-color: var(--accent-color);
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .video-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .video-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--text-secondary);
+        }
+
+        .thumbnail-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #2a2a2a;
+        }
+
+        .thumbnail-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .duration-badge {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: var(--text-primary);
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+        }
+
+        .video-info {
+            padding: 1rem;
+        }
+
+        .video-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .video-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Modal Player */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 900px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .player-container {
+            position: relative;
+            padding-top: 56.25%;
+            background-color: #000;
+        }
+
+        .player-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal-details {
+            padding: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 1rem;
+            }
+            .search-bar {
+                width: 180px;
+            }
+            main {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" class="logo">STREAMPRO</a>
+        <input type="text" class="search-bar" placeholder="Search videos...">
+    </header>
+
+    <div class="categories">
+        <button class="category-btn active" onclick="filterCategory('all')">All</button>
+        <button class="category-btn" onclick="filterCategory('Trending')">Trending</button>
+        <button class="category-btn" onclick="filterCategory('New')">New Releases</button>
+        <button class="category-btn" onclick="filterCategory('Popular')">Most Popular</button>
+        <button class="category-btn" onclick="filterCategory('HD')">1080p HD</button>
+    </div>
+
+    <main>
+        <h2 class="section-title">Recommended Videos</h2>
+        <div class="video-grid" id="videoGrid">
+            <!-- Dynamic Video Cards will be inserted here -->
+        </div>
+    </main>
+
+    <!-- Video Modal / Player -->
+    <div class="modal" id="videoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Video Title</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="player-container">
+                <video id="modalVideo" controls poster="">
+                    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="modal-details">
+                <p id="modalMeta" style="color: var(--text-secondary); font-size: 0.9rem;">Views • Upload Date</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sampleVideos = [
+            { id: 1, title: "Cinematic Nature Showcase - 4K Prototype", duration: "10:24", views: "125K views", category: "Trending", date: "2 days ago" },
+            { id: 2, title: "Urban Exploration and Night Skyline Tour", duration: "15:00", views: "43K views", category: "New", date: "5 hours ago" },
+            { id: 3, title: "Abstract Motion Graphics and Lighting Loops", duration: "05:12", views: "302K views", category: "Popular", date: "1 week ago" },
+            { id: 4, title: "High Speed Camera Test Footage 1080p", duration: "08:45", views: "89K views", category: "HD", date: "3 days ago" },
+            { id: 5, title: "Studio Lighting Setup and Color Grading Guide", duration: "22:10", views: "15K views", category: "Trending", date: "4 days ago" },
+            { id: 6, title: "Minimalist Architecture and Design Walkthrough", duration: "12:05", views: "67K views", category: "New", date: "1 day ago" }
+        ];
+
+        function renderVideos(videos) {
+            const grid = document.getElementById('videoGrid');
+            grid.innerHTML = '';
+            
+            videos.forEach(video => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.onclick = () => openModal(video);
+                
+                card.innerHTML = `
+                    <div class="thumbnail-container">
+                        <div class="thumbnail-placeholder">Thumbnail Preview</div>
+                        <span class="duration-badge">${video.duration}</span>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">${video.title}</div>
+                        <div class="video-meta">
+                            <span>${video.views}</span>
+                            <span>${video.date}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterCategory(category) {
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (category === 'all') {
+                renderVideos(sampleVideos);
+            } else {
+                const filtered = sampleVideos.filter(v => v.category === category);
+                renderVideos(filtered);
+            }
+        }
+
+        function openModal(video) {
+            const modal = document.getElementById('videoModal');
+            document.getElementById('modalTitle').innerText = video.title;
+            document.getElementById('modalMeta').innerText = `${video.views} • Released ${video.date}`;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('videoModal');
+            const videoElement = document.getElementById('modalVideo');
+            videoElement.pause();
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('videoModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Initialize grid on load
+        renderVideos(sampleVideos);
+    </script>
+</body>
+</html>
